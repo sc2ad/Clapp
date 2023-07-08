@@ -272,16 +272,6 @@ template <class T, class F> constexpr auto do_on_bindings(T &t, F &&f) {
 // Special case for --help: don't let that be overriden
 // If we see any argv that is --help, we stop and print our help message
 
-// We create our help message by walking our members and doing a few things:
-// 1. write our converted name (ex: a for positional --a for optional) (TODO:
-// Handle aliases?)
-// 2. write our type (ex: int, list, str, etc., grabbed from template
-// specialization)
-// 3. write our default (done by reading the current value when we do the parse,
-// also done by specialization)
-
-// The usage line is given by argv[0] and all of our positional arguments
-
 // Return a map of names to Options
 template <class T, class U> decltype(auto) get_arg_options(U &&members_tuple) {
   // TODO: Could be constexpr array?
@@ -325,9 +315,54 @@ template <class T> constexpr bool is_help(const char *arg) {
                      [arg](const char *a) { return arg == a; });
 }
 
+// We create our help message by walking our members and doing a few things:
+// 1. write our converted name (ex: a for positional --a for optional) (TODO:
+// Handle aliases?)
+// 2. write our type (ex: int, list, str, etc., grabbed from template
+// specialization)
+// 3. write our default (done by reading the current value when we do the parse,
+// also done by specialization)
+
+// The usage line is given by argv[0] and all of our positional arguments
+
+template <class T, class F>
+void on_positionals(T &member, auto const &options_map, F &&func) {
+  auto itr = options_map.find(member.name);
+  auto const options = itr != options_map.end() ? itr->second : Options{};
+  if (options.positional) {
+    func(member, options);
+  }
+}
+
 template <class T> void display_help(T &inst, const char *program_name) {
   // TODO: Display help message from members
-  printf("HELP MESSAGE: %p: %s\n", static_cast<void *>(&inst), program_name);
+  // printf("HELP MESSAGE: %p: %s\n", static_cast<void *>(&inst), program_name);
+  // Get our options map: member name --> Option if it exists
+  std::unordered_map<std::string_view, Options> options_map;
+  do_on_bindings(inst, [&options_map](auto &&members) {
+    options_map = get_arg_options<T>(members);
+  });
+  printf("Usage: %s", program_name);
+  // Walk the members again, if they are positional, we write them out
+  // TODO: Or required flags
+  do_on_bindings(
+      inst, [&options_map = std::as_const(options_map)](auto &&members) {
+        std::apply(
+            [&options_map](auto &...members) {
+              (on_positionals(members, options_map,
+                              [](auto &member, auto const &options) {
+                                std::string name = options.name.empty()
+                                                       ? member.name.data()
+                                                       : options.name;
+                                printf(" <%s>", name.c_str());
+                              }),
+               ...);
+              // After all of the positionals are written, we write a newline
+              puts("");
+            },
+            members);
+      });
+  // Then, write our flags and the types of them, as well as any default values
 }
 
 // Example:

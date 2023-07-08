@@ -1,9 +1,9 @@
 #include "clapp/clapp.hpp"
 #include "clapp/types.hpp"
+#include "gtest/gtest.h"
 #include <array>
 #include <string_view>
 
-#include <gtest/gtest.h>
 #include <variant>
 
 struct SuperSimple {
@@ -75,4 +75,12 @@ TEST(Simple, BadPositional) {
   std::array args{"filename", "notanint"};
   auto v = ParseArgs<Positional>(args.size(), args.data());
   EXPECT_TRUE(std::holds_alternative<ParseError>(v));
+}
+
+TEST(Simple, Help) {
+  std::array args{"filename", "--help"};
+  testing::internal::CaptureStdout();
+  ParseArgs<Positional>(args.size(), args.data());
+  auto out = testing::internal::GetCapturedStdout();
+  EXPECT_EQ(out, "Usage: filename <positional>\n");
 }
