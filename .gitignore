@@ -1,0 +1,67 @@
+# Created by https://www.toptal.com/developers/gitignore/api/c++,meson,ninja
+# Edit at https://www.toptal.com/developers/gitignore?templates=c++,meson,ninja
+
+### C++ ###
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+### Meson ###
+# subproject directories
+/subprojects/*
+!/subprojects/*.wrap
+
+# Meson Directories
+meson-logs
+meson-private
+
+# Meson Files
+meson_benchmark_setup.dat
+meson_test_setup.dat
+sanitycheckcpp.cc     # C++ specific
+sanitycheckcpp.exe    # C++ specific
+
+# Ninja
+build.ninja
+.ninja_deps
+.ninja_logs
+
+# Misc
+compile_commands.json
+
+### Ninja ###
+.ninja_log
+
+# End of https://www.toptal.com/developers/gitignore/api/c++,meson,ninja
+
+.cache
+build
