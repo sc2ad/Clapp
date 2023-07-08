@@ -4,14 +4,10 @@
 #include <string_view>
 
 #include <gtest/gtest.h>
+#include <variant>
 
 struct SuperSimple {
   int flag;
-};
-
-struct Rename {
-  int flag;
-  Options __flag{.name = "--new-flag"};
 };
 
 template <> struct MetaInfo<SuperSimple> {
@@ -30,18 +26,53 @@ TEST(Simple, SingleFlag) {
 TEST(Simple, ExtraArg) {
   std::array args{"filename", "garbage", "--flag", "10"};
   auto v = ParseArgs<SuperSimple>(args.size(), args.data());
-  EXPECT_EQ(v.index(), 3);
+  EXPECT_TRUE(std::holds_alternative<UnknownArgError>(v));
 }
 
-TEST(Simple, BadArg) {
+TEST(Simple, MissingFlag) {
   std::array args{"filename", "--flag"};
   auto v = ParseArgs<SuperSimple>(args.size(), args.data());
-  EXPECT_EQ(v.index(), 2);
+  EXPECT_TRUE(std::holds_alternative<ParseError>(v));
 }
+
+TEST(Simple, BadFlag) {
+  std::array args{"filename", "--flag", "not an int"};
+  auto v = ParseArgs<SuperSimple>(args.size(), args.data());
+  EXPECT_TRUE(std::holds_alternative<ParseError>(v));
+}
+
+struct Rename {
+  int flag;
+  Options __flag{.name = "--new-flag"};
+};
 
 TEST(Simple, Rename) {
   std::array args{"filename", "--new-flag", "10"};
   auto v = ParseArgs<Rename>(args.size(), args.data());
   EXPECT_EQ(v.index(), 0);
   EXPECT_EQ(std::get<Rename>(v).flag, 10);
+}
+
+struct Positional {
+  int positional;
+  Options __positional{.positional = true};
+};
+
+TEST(Simple, Positional) {
+  std::array args{"filename", "10"};
+  auto v = ParseArgs<Positional>(args.size(), args.data());
+  EXPECT_EQ(v.index(), 0);
+  EXPECT_EQ(std::get<Positional>(v).positional, 10);
+}
+
+TEST(Simple, MissingPositional) {
+  std::array args{"filename"};
+  auto v = ParseArgs<Positional>(args.size(), args.data());
+  EXPECT_TRUE(std::holds_alternative<UsageError>(v));
+}
+
+TEST(Simple, BadPositional) {
+  std::array args{"filename", "notanint"};
+  auto v = ParseArgs<Positional>(args.size(), args.data());
+  EXPECT_TRUE(std::holds_alternative<ParseError>(v));
 }

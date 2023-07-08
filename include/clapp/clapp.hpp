@@ -492,6 +492,12 @@ detail::parse_args_return_type<T> ParseArgs(int argc, const char **argv,
   detail::do_on_bindings(std::get<T>(val), [&options_map](auto &&members) {
     options_map = detail::get_arg_options<T>(members);
   });
+  int positionals_count = 0;
+  for (auto const &[name, option] : options_map) {
+    if (option.positional) {
+      positionals_count++;
+    }
+  }
 
   while (begin != end) {
     // Check to see if we have help first
@@ -561,7 +567,7 @@ detail::parse_args_return_type<T> ParseArgs(int argc, const char **argv,
             // Finally, if we disallow unknown args, handle that here
             if constexpr (!meta_type::extra_args_ok) {
               // TODO: Fill this out
-              val.template emplace<UnknownArgError>(UnknownArgError{});
+              val.template emplace<UnknownArgError>();
               return;
             } else {
               // If we support extra args that we don't know about, skip this by
@@ -579,5 +585,12 @@ detail::parse_args_return_type<T> ParseArgs(int argc, const char **argv,
       return val;
     }
   }
+  // If begin == end here, AND we didn't decode our positionals
+  // TODO: or our required flags
+  // we error out here
+  if (positionals_decoded < positionals_count) {
+    val.template emplace<UsageError>();
+  }
+
   return val;
 }
